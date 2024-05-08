@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -237,7 +238,9 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
     val deviceWidth = LocalContext.current.resources.displayMetrics.widthPixels
     val bitmapWidth = bitmap.width
     val bitmapHeight = bitmap.height
-    val points = remember { mutableStateListOf<Offset>() } // List to store points
+    var drawing = false
+    val pointNodes = remember { mutableStateListOf<PointNode>() }
+    val temp : MutableList<Offset> = mutableListOf()
 
     Canvas(modifier = Modifier
         .fillMaxWidth()
@@ -248,12 +251,29 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
         .pointerInput(Unit) {
             detectDragGestures(
                 onDragStart = { startOffset ->
-                    points.add(startOffset) // Add the start point to the list
+                    drawing = true
+                    temp.add(startOffset)
+                    pointNodes.add(PointNode(pointNodes.size, temp.toMutableList()))// Add the start point to the list
                 },
                 onDrag = { change, dragAmount ->
-                    points.add(change.position) // Add the current point to the list
+                    temp.add(change.position)
+                    Log.e("PointNode", "PointNode: ${pointNodes.size}, Points: ${temp.size}") // Add the current point to the list
                     change.consume()
-                })
+                    if(pointNodes.isNotEmpty()){
+                        pointNodes.last().points.add(change.position);
+                    }
+                },
+                onDragEnd = {
+                    //pointNodes.add(PointNode(pointNodes.size, temp.toMutableList()))
+                    temp.clear()
+                    Log.e("PointNode", "PointNode: ${pointNodes.size}, Points: ${temp.size}")
+                },
+                onDragCancel = {
+                    if(pointNodes.isNotEmpty()){
+                        pointNodes.removeLast()
+                    }
+                }
+            )
         }
         .drawWithCache {
             val width = this.size.width.toInt()
@@ -273,24 +293,28 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
                 drawIntoCanvas { canvas -> canvas.nativeCanvas.drawPicture(picture) }
             }
         }) {
-        val path = Path().apply {
-            var first = true
+        drawImage(bitmap)
 
-            for (i in points.indices step 2) {
-                val point: Offset = points[i]
-                if (first) {
-                    first = false
-                    moveTo(point.x, point.y)
-                } else if (i < points.size - 1) {
-                    val next: Offset = points[i + 1]
-                    quadraticBezierTo(point.x, point.y, next.x, next.y)
-                } else {
-                    lineTo(point.x, point.y)
+        for (node in pointNodes) {
+            Log.e("PointNode draw", "PointNode: ${node.index}, Points: ${node.points.size}")
+            val path = Path().apply {
+                var first = true
+
+                for (i in node.points.indices step 2) {
+                    val point: Offset = node.points[i]
+                    if (first) {
+                        first = false
+                        moveTo(point.x, point.y)
+                    } else if (i < node.points.size - 1) {
+                        val next: Offset = node.points[i + 1]
+                        quadraticBezierTo(point.x, point.y, next.x, next.y)
+                    } else {
+                        lineTo(point.x, point.y)
+                    }
                 }
             }
+            drawPath(path = path, Color.Black, style = Stroke(width = 10f))
         }
-        drawImage(bitmap)
-        drawPath(path = path, Color.Black, style = Stroke(width = 10f))
     }
 }
 
@@ -364,4 +388,4 @@ private fun shareBitmap(context: Context, uri: Uri) {
     startActivity(context, createChooser(intent, "Share your image"), null)
 }
 
-data class PointNode(val index: Int, val points: List<Offset>)
+data class PointNode(val index: Int, val points: MutableList<Offset>)

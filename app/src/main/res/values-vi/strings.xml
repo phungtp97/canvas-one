@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Canvas One</string>
+    <string name="ok">Đồng ý</string>
+    <string name="cancel">Hủy</string>
+    <string name="yes">Có</string>
+    <string name="no">Không</string>
+    <string name="submit">Gửi</string>
+    <string name="close">Đóng</string>
+    <string name="loading">Đang tải...</string>
+    <string name="please_wait">Vui lòng chờ...</string>
+    <string name="error">Lỗi</string>
+    <string name="success">Thành công</string>
+    <string name="settings">Cài đặt</string>
+    <string name="help">Trợ giúp</string>
+    <string name="search">Tìm kiếm</string>
+    <string name="next">Tiếp theo</string>
+    <string name="previous">Trước</string>
+    <string name="finish">Hoàn tất</string>
+    <string name="welcome">Chào mừng</string>
+    <string name="sign_in">Đăng nhập</string>
+    <string name="sign_up">Đăng ký</string>
+    <string name="forgot_password">Quên mật khẩu?</string>
+</resources>

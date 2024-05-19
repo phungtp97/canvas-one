@@ -23,12 +23,15 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.BottomNavigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,8 +51,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -72,6 +77,7 @@ import androidx.core.content.ContextCompat.startActivity
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.joshta.canvasone.R
+import com.joshta.canvasone.ui.composable.CurveBottomNav
 import com.joshta.canvasone.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -202,6 +208,20 @@ fun CanvasScreen() {
                 }
             )
         },
+        bottomBar = {
+            BottomAppBar(
+                modifier = Modifier
+                    .fillMaxWidth(1F)
+                    .height(118.dp)
+                    .background(color = AppTheme.color.darkBackground),
+            ) {
+                BottomNavigation(
+                    modifier = Modifier
+                        .fillMaxSize(1F)
+                        .clip(CurveBottomNav())
+                ) {}
+            }
+        }
     ) { paddingValues ->
         ConstraintLayout(
             modifier = Modifier
@@ -250,11 +270,15 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
             mutableStateListOf<Offset>()
         }
         val bitmapFitHeight = (maxWidth / maxHeight) > (bitmapWidth / bitmapHeight)
-        val contentHeight = if(bitmapFitHeight) this@BoxWithConstraints.maxHeight else (this@BoxWithConstraints.maxWidth / (bitmapWidth.toFloat() / bitmapHeight.toFloat()));
-        val contentWidth = if(bitmapFitHeight) (contentHeight / (bitmapHeight.toFloat() / bitmapWidth.toFloat())) else this@BoxWithConstraints.maxWidth
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .background(color = Color.Gray)) {
+        val contentHeight =
+            if (bitmapFitHeight) this@BoxWithConstraints.maxHeight else (this@BoxWithConstraints.maxWidth / (bitmapWidth.toFloat() / bitmapHeight.toFloat()));
+        val contentWidth =
+            if (bitmapFitHeight) (contentHeight / (bitmapHeight.toFloat() / bitmapWidth.toFloat())) else this@BoxWithConstraints.maxWidth
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = Color.Gray)
+        ) {
 
             Canvas(modifier = Modifier
                 .width(contentWidth)

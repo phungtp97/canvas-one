@@ -22,7 +22,7 @@ These instructions will get you a copy of the project up and running on your loc
 - A draw-on-image canvas Android application for simply and quick drawing/notes. 
 - Draw on a canvas with different colors, pen sizes, and customizable draw curve stability.
 - Save drawings.
-![Project Image](https://imgur.com/a/WN6I3Hu)
+![Project Image](https://i.imgur.com/ljdo6qG.png)
 
 ## Built With
 

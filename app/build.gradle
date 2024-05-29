@@ -70,4 +70,5 @@ dependencies {
     implementation(libs.accompanist.permissions)
     implementation(libs.colorpicker.compose)
     implementation(libs.androidx.material)
+    implementation(libs.colorpicker.compose)
 }

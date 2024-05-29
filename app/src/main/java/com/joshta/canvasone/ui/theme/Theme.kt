@@ -38,7 +38,7 @@ data class AppTypo(
         fontFamily = fontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
-        color = Primary
+        color = Black
     ),
     val h5: TextStyle = TextStyle(
         fontFamily = fontFamily,
@@ -57,6 +57,12 @@ data class AppTypo(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         color = Primary
+    ),
+    val h4warn : TextStyle = TextStyle(
+        fontFamily = fontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        color = GreyNotice
     ),
     val subtitle2: TextStyle = TextStyle(
         fontFamily = fontFamily,

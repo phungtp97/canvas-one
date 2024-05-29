@@ -49,6 +49,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,9 +83,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.content.ContextCompat.startActivity
+import com.github.skydoves.colorpicker.compose.ColorPickerController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.joshta.canvasone.R
+import com.joshta.canvasone.ui.composable.PenIcon
+import com.joshta.canvasone.ui.composable.PenSelector
 import com.joshta.canvasone.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,13 +106,31 @@ fun CanvasScreen() {
     }
     val context = LocalContext.current
 
-    var maxSelectionCount = 1;
+    val maxSelectionCount = 1
 
     val coroutineScope = rememberCoroutineScope()
 
     val picture = remember { Picture() }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val penExpanded = remember { mutableStateOf(false) }
+
+    val colorController = ColorPickerController()
+
+    LaunchedEffect(key1 = true) {
+        Log.d("CanvasScreen", "LaunchedEffect1")
+        colorController.selectByColor(Color.Black, false)
+        colorController.setAlpha(1.0f, false)
+    }
+
+    val strokeWidth = remember {
+        mutableStateOf(2.dp)
+    }
+
+    val penStability = remember {
+        mutableStateOf(1)
+    }
 
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -202,9 +224,12 @@ fun CanvasScreen() {
                         style = AppTheme.typo.h1.copy(color = Color.Black)
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White, actionIconContentColor = Color.Black),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    actionIconContentColor = Color.Black
+                ),
                 actions = {
-                    if (permissionAccessState.allPermissionsGranted) {
+                    if (permissionAccessState.allPermissionsGranted && uri != null) {
                         SaveImageIcon {
                             shareBitmapFromComposable()
                         }
@@ -240,19 +265,38 @@ fun CanvasScreen() {
                 }
             }) {
                 Button(
-                    onClick = { /* Handle click */ },
+                    onClick = { penExpanded.value = !penExpanded.value },
                     modifier = Modifier
                         .weight(1f)
                         .padding(all = 14.dp)
-                        .background(color = Color.White)
-                        .padding(),
+                        .background(color = Color.White),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_home),
-                        contentDescription = "Home",
-                        modifier = Modifier.size(64.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                    ) {
+                        PenIcon(
+                            size = 30.dp,
+                            strokeWidth = strokeWidth.value,
+                            color = colorController.selectedColor.value,
+                        )
+                        PenSelector(size = 30.dp,
+                            onStrokeChange = {
+                                strokeWidth.value = it + 2.dp
+                            },
+                            expanded = penExpanded.value,
+                            initStroke = strokeWidth.value - 2.dp,
+                            initStability = penStability.value - 1,
+                            onStabilityChange = {
+                                penStability.value = it + 1
+                            },
+                            onColorChange = {
+                                //color value = it
+                            },
+                            controller = colorController,
+                            onExpandedChange = { penExpanded.value = it })
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -275,60 +319,76 @@ fun CanvasScreen() {
             }
         }
     ) { paddingValues ->
-        ConstraintLayout(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    paddingValues.addWith(
-                        bottom = 34.dp,
-                        top = 10.dp,
-                        left = 10.dp,
-                        right = 10.dp
-                    ),
-                )
-        ) {
-            if (uri != null) {
-                val mBitmap: Bitmap
-                if (Build.VERSION.SDK_INT < 28) {
-                    mBitmap = MediaStore.Images
-                        .Media.getBitmap(context.contentResolver, uri)
+        if (uri != null) {
+            ConstraintLayout(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        paddingValues.addWith(
+                            bottom = 34.dp,
+                            top = 10.dp,
+                            left = 10.dp,
+                            right = 10.dp
+                        ),
+                    )
+            ) {
+                if (uri != null) {
+                    val mBitmap: Bitmap
+                    if (Build.VERSION.SDK_INT < 28) {
+                        mBitmap = MediaStore.Images
+                            .Media.getBitmap(context.contentResolver, uri)
 
-                } else {
-                    val source = ImageDecoder
-                        .createSource(context.contentResolver, uri!!)
-                    mBitmap = ImageDecoder.decodeBitmap(source)
+                    } else {
+                        val source = ImageDecoder
+                            .createSource(context.contentResolver, uri!!)
+                        mBitmap = ImageDecoder.decodeBitmap(source)
+                    }
+                    ConstraintLayout(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        DrawableCanvas(
+                            mBitmap.copy(Bitmap.Config.ARGB_8888, true).asImageBitmap(),
+                            picture,
+                            strokeWidth,
+                            penStability,
+                            colorController
+                        )
+                    }
                 }
-                ImageLayoutView(
-                    mBitmap.copy(Bitmap.Config.ARGB_8888, true).asImageBitmap(),
-                    picture
-                )
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No image selected")
             }
         }
     }
 }
 
-fun PaddingValues.addWith(bottom: Dp? = null, top: Dp? = null, left: Dp? = null, right: Dp? = null): PaddingValues {
+fun PaddingValues.addWith(
+    bottom: Dp? = null,
+    top: Dp? = null,
+    left: Dp? = null,
+    right: Dp? = null
+): PaddingValues {
     return PaddingValues(
-        start = calculateStartPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr) + (left ?: 0.dp),
+        start = calculateStartPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr) + (left
+            ?: 0.dp),
         top = calculateTopPadding() + (top ?: 0.dp),
-        end = calculateLeftPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr) + (right ?: 0.dp),
+        end = calculateLeftPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr) + (right
+            ?: 0.dp),
         bottom = calculateBottomPadding() + (bottom ?: 0.dp)
     )
 }
 
 @Composable
-fun ImageLayoutView(bitmap: ImageBitmap, picture: Picture) {
-    ConstraintLayout(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        DrawableCanvas(bitmap, picture = picture)
-    }
-}
-
-@Composable
-fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
-
+fun DrawableCanvas(
+    bitmap: ImageBitmap,
+    picture: Picture,
+    strokeWidth: MutableState<Dp>,
+    penStability: MutableState<Int>,
+    colorController: ColorPickerController
+) {
     BoxWithConstraints {
         val bitmapWidth = bitmap.width
         val bitmapHeight = bitmap.height
@@ -362,7 +422,7 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
                             tempPoints.add(startOffset)
                         },
                         onDrag = { change, dragAmount ->
-                            Log.e("onDrag", "onDrag: ${change.position}")
+                            Log.e("onDrag", "onDrag: strokeWidth: ${strokeWidth.value}")
                             tempPoints.add(change.position)// Add the current point to the list
                             change.consume()
                         },
@@ -370,8 +430,13 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
                             pointNodes.add(
                                 PointNode(
                                     pointNodes.size,
-                                    mutableListOf<Offset>().apply { addAll(tempPoints) })
+                                    mutableListOf<Offset>().apply { addAll(tempPoints) },
+                                    strokeWidth = strokeWidth.value,
+                                    penStability = penStability.value,
+                                    color = colorController.selectedColor.value
+                                )
                             )
+                            Log.d("onDragEnd", "onDragEnd strokeWidth: ${strokeWidth.value}")
                             tempPoints.clear();
                         },
                         onDragCancel = {
@@ -436,7 +501,15 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
                 val temp = pointNodes.toMutableList()
 
                 if (tempPoints.isNotEmpty()) {
-                    temp.add(PointNode(-1, tempPoints))
+                    temp.add(
+                        PointNode(
+                            -1,
+                            tempPoints,
+                            strokeWidth.value,
+                            penStability.value,
+                            colorController.selectedColor.value
+                        )
+                    )
                 }
 
                 for (node in temp) {
@@ -458,14 +531,18 @@ fun DrawableCanvas(bitmap: ImageBitmap, picture: Picture) {
                     val path = Path().apply {
                         var lastPrintedIndex = -1
 
-                        for (i in node.points.indices step 8) {
+                        for (i in node.points.indices step node.penStability) {
                             task(i, this)
                         }
                         if (lastPrintedIndex != node.points.lastIndex) {
                             task(node.points.lastIndex, this)
                         }
                     }
-                    drawPath(path = path, Color.Black, style = Stroke(width = 10f))
+                    drawPath(
+                        path = path,
+                        node.color,
+                        style = Stroke(width = node.strokeWidth.toPx())
+                    )
                 }
             }
         }
@@ -533,7 +610,14 @@ fun AddImageIcon(onClick: () -> Unit) {
 @Composable
 fun SaveImageIcon(onClick: () -> Unit) {
     Button(onClick = onClick, modifier = Modifier.padding(8.dp)) {
-        Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp).padding(end = 10.dp))
+        Icon(
+            Icons.Filled.Check,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier
+                .size(32.dp)
+                .padding(end = 10.dp)
+        )
         Text("Save")
     }
 }
@@ -547,4 +631,10 @@ private fun shareBitmap(context: Context, uri: Uri) {
     startActivity(context, createChooser(intent, "Share your image"), null)
 }
 
-data class PointNode(val index: Int, val points: MutableList<Offset>)
+data class PointNode(
+    val index: Int,
+    val points: MutableList<Offset>,
+    val strokeWidth: Dp,
+    val penStability: Int,
+    val color: Color
+)

@@ -1,4 +1,4 @@
-name: Release Build
+name: Build and Release APK
 
 on:
   push:
@@ -13,25 +13,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
+    - name: Set up JDK
+      uses: actions/setup-java@v2
       with:
-        node-version: '14'  # Specify the Node.js version needed for your project
+        distribution: 'adopt'
+        java-version: '11'  # Use the version required by your project
 
-    - name: Install dependencies
-      run: npm install  # Ensure this command correctly installs your project dependencies
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
-    - name: Build project
-      run: npm run build  # Ensure this command correctly builds your project
-
-    - name: Create release artifact
-      run: zip -r build.zip build  # Adjust the directory if your build output is in a different location
+    - name: Build APK
+      run: ./gradlew assembleRelease
 
     - name: Upload release artifact
       uses: actions/upload-artifact@v2
       with:
-        name: build
-        path: build.zip
+        name: app-release.apk
+        path: app/build/outputs/apk/release/app-release.apk
 
   release:
     needs: build
@@ -41,14 +46,14 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v2
       with:
-        name: build
-        path: build.zip
+        name: app-release.apk
+        path: app-release.apk
 
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is automatically provided by GitHub
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
@@ -58,9 +63,9 @@ jobs:
     - name: Upload release asset
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is automatically provided by GitHub
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build.zip
-        asset_name: build.zip
-        asset_content_type: application/zip
+        asset_path: app-release.apk
+        asset_name: app-release.apk
+        asset_content_type: application/vnd.android.package-archive

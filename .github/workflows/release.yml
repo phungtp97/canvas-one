@@ -1,0 +1,66 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers the workflow on version tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'  # Specify the Node.js version needed for your project
+
+    - name: Install dependencies
+      run: npm install  # Ensure this command correctly installs your project dependencies
+
+    - name: Build project
+      run: npm run build  # Ensure this command correctly builds your project
+
+    - name: Create release artifact
+      run: zip -r build.zip build  # Adjust the directory if your build output is in a different location
+
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: build
+        path: build.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: build
+        path: build.zip
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is automatically provided by GitHub
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is automatically provided by GitHub
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build.zip
+        asset_name: build.zip
+        asset_content_type: application/zip
